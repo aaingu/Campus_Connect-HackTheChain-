@@ -1,32 +1,72 @@
-export default function MainLayout() {
+import { NavLink } from "react-router-dom";
+
+export default function MainLayout({ children }) {
+  const baseStyle = "px-4 py-2 rounded transition";
+  const activeStyle = "bg-gray-700";
+
   return (
-    <div className="flex h-screen bg-gray-900 text-white">
-      
-      {/* Sidebar */}
-      <div className="w-64 bg-gray-800 p-5">
-        <h2 className="text-xl font-bold mb-6">Modular Commons</h2>
-        <ul className="space-y-4">
-          <li>Dashboard</li>
-          <li>Members</li>
-          <li>Resources</li>
-          <li>Activity</li>
-        </ul>
+    <div className="min-h-screen bg-gray-900 text-white">
+
+      {/* Welcome */}
+      <div className="px-8 pt-6">
+        <h1 className="text-2xl font-semibold">
+          Welcome, Kelp 👋
+        </h1>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1">
-        
-        {/* Navbar */}
-        <div className="h-16 bg-gray-800 flex items-center px-6">
-          <h1 className="text-lg">Dashboard</h1>
-        </div>
+      {/* Title */}
+      <div className="px-8 mt-4">
+        <h2 className="text-3xl font-bold">
+          Campus Connect
+        </h2>
+      </div>
 
-        {/* Page Content */}
-        <div className="p-6">
-          <h2>Welcome 👋</h2>
-        </div>
+      {/* Navbar */}
+      <div className="mt-6 border-t border-gray-700 px-8 py-4 flex gap-12 text-lg">
+
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            `${baseStyle} ${isActive ? activeStyle : "hover:bg-gray-700"}`
+          }
+        >
+          Dashboard
+        </NavLink>
+
+        <NavLink
+          to="/members"
+          className={({ isActive }) =>
+            `${baseStyle} ${isActive ? activeStyle : "hover:bg-gray-700"}`
+          }
+        >
+          Members
+        </NavLink>
+
+        <NavLink
+          to="/resources"
+          className={({ isActive }) =>
+            `${baseStyle} ${isActive ? activeStyle : "hover:bg-gray-700"}`
+          }
+        >
+          Resources
+        </NavLink>
+
+        <NavLink
+          to="/activity"
+          className={({ isActive }) =>
+            `${baseStyle} ${isActive ? activeStyle : "hover:bg-gray-700"}`
+          }
+        >
+          Activity
+        </NavLink>
 
       </div>
+
+      {/* Page Content */}
+      <div className="px-8 py-6">
+        {children}
+      </div>
+
     </div>
   );
 }

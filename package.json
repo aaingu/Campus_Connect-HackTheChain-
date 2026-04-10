@@ -1,0 +1,10 @@
+{
+  "name": "campus-connect-root",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "npx concurrently \"npm run start --prefix auth-service\" \"npm run start --prefix event-service\" \"npm run start --prefix registration-service\" \"npm run start --prefix frontend\""
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

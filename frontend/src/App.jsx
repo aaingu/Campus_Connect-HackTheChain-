@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 
 function App() {
   const [user, setUser] = useState(localStorage.getItem("user"));
+  const role = localStorage.getItem("role");
 
   if (!user) {
     return <Login setUser={setUser} />;
@@ -19,10 +20,20 @@ function App() {
   return (
     <MainLayout setUser={setUser}>
       <Routes>
+
         <Route path="/" element={<Dashboard />} />
-        <Route path="/members" element={<Members />} />
+
+        {/* Admin only */}
+        {role === "Admin" && (
+          <>
+            <Route path="/members" element={<Members />} />
+            <Route path="/activity" element={<Activity />} />
+          </>
+        )}
+
+        {/* Shared */}
         <Route path="/resources" element={<Resources />} />
-        <Route path="/activity" element={<Activity />} />
+
       </Routes>
     </MainLayout>
   );

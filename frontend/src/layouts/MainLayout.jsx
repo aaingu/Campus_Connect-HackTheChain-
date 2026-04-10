@@ -3,6 +3,7 @@ import { useState } from "react";
 
 export default function MainLayout({ children, setUser }) {
   const user = localStorage.getItem("user");
+  const role = localStorage.getItem("role");
 
   const [notifications, setNotifications] = useState([
     "Welcome to Campus Connect 🎉",
@@ -20,11 +21,12 @@ export default function MainLayout({ children, setUser }) {
           Welcome, {user} 👋
         </h1>
 
-        {/* Logout Button */}
+        {/* Logout */}
         <button
           onClick={() => {
             localStorage.removeItem("user");
-            setUser(null); // 🔥 FIXED logout
+            localStorage.removeItem("role");
+            setUser(null);
           }}
           className="bg-red-600 px-4 py-2 rounded hover:bg-red-500 transition"
         >
@@ -54,6 +56,7 @@ export default function MainLayout({ children, setUser }) {
       {/* Navbar */}
       <div className="mt-6 border-t border-gray-700 px-8 py-4 flex gap-12 text-lg">
 
+        {/* Always visible */}
         <NavLink
           to="/"
           className={({ isActive }) =>
@@ -63,15 +66,30 @@ export default function MainLayout({ children, setUser }) {
           Dashboard
         </NavLink>
 
-        <NavLink
-          to="/members"
-          className={({ isActive }) =>
-            `${baseStyle} ${isActive ? activeStyle : "hover:bg-gray-700"}`
-          }
-        >
-          Members
-        </NavLink>
+        {/* Admin only */}
+        {role === "Admin" && (
+          <>
+            <NavLink
+              to="/members"
+              className={({ isActive }) =>
+                `${baseStyle} ${isActive ? activeStyle : "hover:bg-gray-700"}`
+              }
+            >
+              Members
+            </NavLink>
 
+            <NavLink
+              to="/activity"
+              className={({ isActive }) =>
+                `${baseStyle} ${isActive ? activeStyle : "hover:bg-gray-700"}`
+              }
+            >
+              Activity
+            </NavLink>
+          </>
+        )}
+
+        {/* Shared */}
         <NavLink
           to="/resources"
           className={({ isActive }) =>
@@ -79,15 +97,6 @@ export default function MainLayout({ children, setUser }) {
           }
         >
           Resources
-        </NavLink>
-
-        <NavLink
-          to="/activity"
-          className={({ isActive }) =>
-            `${baseStyle} ${isActive ? activeStyle : "hover:bg-gray-700"}`
-          }
-        >
-          Activity
         </NavLink>
 
       </div>

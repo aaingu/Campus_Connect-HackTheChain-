@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 
 export default function Members() {
-  const [members, setMembers] = useState([
-    { id: 1, name: "Alice", role: "Admin" },
-    { id: 2, name: "Bob", role: "Member" },
-  ]);
+  const [members, setMembers] = useState([]);
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
@@ -13,6 +10,12 @@ export default function Members() {
   const [filterRole, setFilterRole] = useState("All");
 
   const [editingId, setEditingId] = useState(null);
+
+  // 🔹 Load from localStorage
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("members")) || [];
+    setMembers(stored);
+  }, []);
 
   // 🔹 Add Member
   const addMember = () => {
@@ -24,14 +27,19 @@ export default function Members() {
       role,
     };
 
-    setMembers([...members, newMember]);
+    const updated = [...members, newMember];
+    setMembers(updated);
+    localStorage.setItem("members", JSON.stringify(updated));
+
     setName("");
     setRole("");
   };
 
-  // 🔹 Delete
+  // 🔹 Delete Member
   const deleteMember = (id) => {
-    setMembers(members.filter((m) => m.id !== id));
+    const updated = members.filter((m) => m.id !== id);
+    setMembers(updated);
+    localStorage.setItem("members", JSON.stringify(updated));
   };
 
   // 🔹 Start Edit
@@ -43,18 +51,19 @@ export default function Members() {
 
   // 🔹 Save Edit
   const saveEdit = () => {
-    setMembers(
-      members.map((m) =>
-        m.id === editingId ? { ...m, name, role } : m
-      )
+    const updated = members.map((m) =>
+      m.id === editingId ? { ...m, name, role } : m
     );
+
+    setMembers(updated);
+    localStorage.setItem("members", JSON.stringify(updated));
 
     setEditingId(null);
     setName("");
     setRole("");
   };
 
-  // 🔹 Filtered Members
+  // 🔹 Filter logic
   const filteredMembers = members.filter((m) => {
     const matchesSearch = m.name
       .toLowerCase()
@@ -69,6 +78,7 @@ export default function Members() {
   return (
     <div className="space-y-6">
 
+      {/* Title */}
       <h2 className="text-2xl font-semibold">Members</h2>
 
       {/* Controls */}
@@ -150,6 +160,7 @@ export default function Members() {
                 <td className="py-2">{m.id}</td>
                 <td>{m.name}</td>
 
+                {/* Role Badge */}
                 <td>
                   <span
                     className={`px-2 py-1 rounded text-sm ${
@@ -162,6 +173,7 @@ export default function Members() {
                   </span>
                 </td>
 
+                {/* Actions */}
                 <td className="text-right space-x-2">
 
                   <button

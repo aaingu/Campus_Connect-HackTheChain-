@@ -1,24 +1,54 @@
 import { NavLink } from "react-router-dom";
+import { useState } from "react";
 
-export default function MainLayout({ children }) {
+export default function MainLayout({ children, setUser }) {
+  const user = localStorage.getItem("user");
+
+  const [notifications, setNotifications] = useState([
+    "Welcome to Campus Connect 🎉",
+  ]);
+
   const baseStyle = "px-4 py-2 rounded transition";
   const activeStyle = "bg-gray-700";
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
 
-      {/* Welcome */}
-      <div className="px-8 pt-6">
+      {/* Top Bar */}
+      <div className="flex justify-between items-center px-8 pt-6">
         <h1 className="text-2xl font-semibold">
-          Welcome, Kelp 👋
+          Welcome, {user} 👋
         </h1>
+
+        {/* Logout Button */}
+        <button
+          onClick={() => {
+            localStorage.removeItem("user");
+            setUser(null); // 🔥 FIXED logout
+          }}
+          className="bg-red-600 px-4 py-2 rounded hover:bg-red-500 transition"
+        >
+          Logout
+        </button>
       </div>
 
       {/* Title */}
       <div className="px-8 mt-4">
-        <h2 className="text-3xl font-bold">
+        <h2 className="text-3xl font-bold tracking-wide">
           Campus Connect
         </h2>
+      </div>
+
+      {/* Notifications */}
+      <div className="px-8 mt-4 space-y-2">
+        {notifications.map((n, i) => (
+          <div
+            key={i}
+            className="bg-blue-600 px-4 py-2 rounded shadow"
+          >
+            {n}
+          </div>
+        ))}
       </div>
 
       {/* Navbar */}

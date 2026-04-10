@@ -3,54 +3,56 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose"); // 1. Added Mongoose
 
 const app = express();
-// Use Environment Variables for the Port and Secret
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-me";
+const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key";
 
 app.use(cors());
 app.use(express.json());
 
-// NOTE: For a hackathon, try connecting this to MongoDB 
-// so your users don't disappear on restart!
-let users = []; 
+// 2. Connect to MongoDB Cloud (from your .env file)
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Auth Service: Successfully connected to MongoDB Cloud"))
+  .catch((err) => console.error("❌ Auth Service: Database connection error:", err));
+
+// 3. Create a User Model (Replaces 'let users = []')
+const UserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, unique: true, required: true },
+  password: { type: String, required: true },
+  role: { type: String, default: "student" }
+});
+
+const User = mongoose.model("User", UserSchema);
 
 // --- SIGNUP ---
 app.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: "All fields required" });
     }
 
-    const existingUser = users.find((u) => u.email === email);
+    // Check if user exists in the DATABASE
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ success: false, message: "User already exists" });
     }
 
-    // IMPROVEMENT: Hash the password (10 salt rounds)
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = {
-      id: Date.now(), // Better ID than array length
-      name,
-      email,
-      password: hashedPassword,
-      role: "student"
-    };
-
-    users.push(user);
+    const newUser = new User({ name, email, password: hashedPassword });
+    
+    await newUser.save(); // Save to MongoDB
 
     res.status(201).json({
       success: true,
-      message: "User created successfully",
-      // Don't send the password back in the response, even if hashed!
-      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+      message: "User created in MongoDB",
+      user: { id: newUser._id, name: newUser.name, email: newUser.email }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error during signup" });
   }
 });
 
@@ -58,20 +60,16 @@ app.post("/signup", async (req, res) => {
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    // Find user in the DATABASE
+    const user = await User.findOne({ email });
 
-    const user = users.find((u) => u.email === email);
-
-    // IMPROVEMENT: Check user exists AND compare hashed password
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password"
-      });
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    // IMPROVEMENT: Generate a real JWT
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user._id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
@@ -83,7 +81,7 @@ app.post("/login", async (req, res) => {
       user: { name: user.name, role: user.role }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error during login" });
   }
 });
 

@@ -1,4 +1,6 @@
+require('dotenv').config();
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
@@ -7,89 +9,49 @@ const PORT = process.env.PORT || 3003;
 app.use(cors());
 app.use(express.json());
 
-// IMPROVEMENT: Using objects to track events specifically
-// In a real app, this would be a MongoDB collection
-let registrations = []; // { id, name, eventId, status }
-let waitlist = [];      // { id, name, eventId, status }
+// 1. Database Connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ Registration Service: Connected to MongoDB Cloud"))
+  .catch((err) => console.error("❌ Registration Service: DB Error:", err));
 
-// This represents data that would normally come from your Event Service
-const EVENT_CAPACITY = {
-  "1": 2, // Event ID 1 has 2 seats
-  "2": 10 // Event ID 2 has 10 seats
-};
-
-// --- REGISTER ---
-app.post("/register", (req, res) => {
-  const { name, eventId } = req.body;
-
-  if (!name || !eventId) {
-    return res.status(400).json({ success: false, message: "Name and eventId required" });
-  }
-
-  // Check if event exists and get its capacity
-  const capacity = EVENT_CAPACITY[eventId] || 5; // Default to 5 if not specified
-
-  // Count current confirmed registrations for THIS specific event
-  const currentCount = registrations.filter(r => r.eventId === eventId).length;
-
-  if (currentCount < capacity) {
-    const registration = {
-      id: Date.now(),
-      name,
-      eventId,
-      status: "confirmed"
-    };
-    registrations.push(registration);
-    return res.json({ success: true, status: "confirmed", data: registration });
-  }
-
-  // If full, add to waitlist
-  const waitingUser = {
-    id: Date.now(),
-    name,
-    eventId,
-    status: "waitlisted"
-  };
-  waitlist.push(waitingUser);
-  res.json({ success: true, status: "waitlisted", message: "Event full. Added to waitlist.", data: waitingUser });
+// 2. Registration Schema
+const RegSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
+  status: { type: String, enum: ["confirmed", "waitlisted"], required: true },
+  createdAt: { type: Date, default: Date.now }
 });
 
-// --- IMPROVISATION: CANCEL & AUTO-PROMOTE ---
-app.post("/cancel", (req, res) => {
-  const { registrationId, eventId } = req.body;
+const Registration = mongoose.model("Registration", RegSchema);
 
-  // 1. Remove the user from confirmed registrations
-  const initialCount = registrations.length;
-  registrations = registrations.filter(r => r.id !== registrationId);
+// 3. The Waitlist Algorithm (FIFO)
+app.post("/register", async (req, res) => {
+  try {
+    const { name, eventId, maxSeats } = req.body;
 
-  if (registrations.length < initialCount) {
-    // 2. LOGIC: Check if anyone is waiting for THIS specific event
-    const nextInLineIndex = waitlist.findIndex(w => w.eventId === eventId);
+    // Count existing CONFIRMED registrations for this event
+    const confirmedCount = await Registration.countDocuments({ eventId, status: "confirmed" });
 
-    if (nextInLineIndex !== -1) {
-      // 3. Promote the first person in the waitlist
-      const promotedUser = waitlist.splice(nextInLineIndex, 1)[0];
-      promotedUser.status = "confirmed";
-      registrations.push(promotedUser);
-
-      console.log(`Auto-promoted ${promotedUser.name} to event ${eventId}`);
+    // Decision Logic
+    let status = "confirmed";
+    if (confirmedCount >= maxSeats) {
+      status = "waitlisted";
     }
 
-    return res.json({ success: true, message: "Registration cancelled and waitlist updated." });
+    const newReg = new Registration({ name, eventId, status });
+    await newReg.save();
+
+    res.status(201).json({
+      success: true,
+      status: status,
+      message: status === "confirmed" ? "Registration Successful!" : "Event Full. Added to Waitlist.",
+      data: newReg
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Registration failed" });
   }
-
-  res.status(404).json({ success: false, message: "Registration not found." });
-});
-
-// --- VIEWING DATA ---
-app.get("/registrations/:eventId", (req, res) => {
-  const eventId = req.params.eventId;
-  const confirmed = registrations.filter(r => r.eventId === eventId);
-  const waiting = waitlist.filter(w => w.eventId === eventId);
-
-  res.json({ success: true, eventId, confirmed, waitlist: waiting });
 });
 
 app.listen(PORT, () => {
-  console.log(`Registration service running on port ${PORT}`);
+  console.log(`Registration service running on http://localhost:${PORT}`);
 });
